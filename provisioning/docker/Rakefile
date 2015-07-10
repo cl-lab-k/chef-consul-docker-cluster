@@ -1,0 +1,101 @@
+#
+# Rakefile Name:: docker
+#
+# Copyright (c) 2015 CREATIONLINE,INC. All Rights Reserved.
+#
+
+#
+# berks
+#
+desc 'berks vendor'
+task :vendor do
+  sh 'berks vendor cookbooks'
+end
+
+#
+# consul-server
+#
+desc 'consul-server'
+task :consul_server do
+  sh 'CHEF_DRIVER=docker chef-client -z consul-server.rb'
+end
+
+#
+# consul-client
+#
+desc 'consul-client'
+task :consul_client do
+  sh 'CHEF_DRIVER=docker chef-client -z consul-client.rb'
+end
+
+#
+# consul members
+#
+desc 'members'
+task :members do
+  `docker ps | grep consul1 | awk '{print $1}'`.split( /\n/ ).each do |s|
+    sh "docker exec #{s} consul members"
+  end
+end
+
+#
+# stop server
+#
+desc 'stop server'
+task :stop_server do
+  `docker ps | grep consul10 | awk '{print $1}'`.split( /\n/ ).each do |s|
+    sh "docker stop #{s}"
+  end
+end
+
+#
+# stop client
+#
+desc 'stop client'
+task :stop_client do
+  `docker ps | grep consul11 | awk '{print $1}'`.split( /\n/ ).each do |s|
+    sh "docker stop #{s}"
+  end
+end
+
+#
+# destroy server
+#
+desc 'destroy server'
+task :destroy_server do
+  current_dir = File.dirname(__FILE__)
+  sh "rm -f #{current_dir}/data_bags/machine_image/consul-server*"
+  sh "rm -f #{current_dir}/clients/consul10*"
+  sh "rm -f #{current_dir}/nodes/consul10*"
+  `docker images | grep consul10 | awk '{print $3}'`.split( /\n/ ).each do |s|
+    sh "docker rmi -f #{s}"
+  end
+end
+
+#
+# destroy client
+#
+desc 'destroy client'
+task :destroy_client do
+  current_dir = File.dirname(__FILE__)
+  sh "rm -f #{current_dir}/data_bags/machine_image/consul-client*"
+  sh "rm -f #{current_dir}/clients/consul11*"
+  sh "rm -f #{current_dir}/nodes/consul11*"
+  `docker images | grep consul11 | awk '{print $3}'`.split( /\n/ ).each do |s|
+    sh "docker rmi -f #{s}"
+  end
+end
+
+task :default => [ :vendor, :consul_server, :consul_client ]
+
+task :stop => [ :stop_server, :stop_client ]
+task :destroy => [ :destroy_server, :destroy_client ]
+
+task :clean_server => [ :stop_server, :destroy_server ]
+task :clean_client => [ :stop_client, :destroy_client ]
+
+task :clean => [ :stop, :destroy ]
+
+#
+# [EOF]
+#

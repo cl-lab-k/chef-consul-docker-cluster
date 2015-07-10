@@ -1,0 +1,14 @@
+upstream lb_units {
+	{{range service "web"}}
+	server {{.Address}};
+	{{end}}
+}
+
+server {
+	listen 80;
+	server_name <%= node['fqdn'] %>;
+	location / {
+		proxy_pass http://lb_units;
+		proxy_set_header Host $http_host;
+	}
+}
